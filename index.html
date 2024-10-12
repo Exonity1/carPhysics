@@ -119,9 +119,29 @@
         .slider.round:before {
             border-radius: 50%;
         }
+
+        #resetbutton {
+          color: #fff;
+          background-color: rgba(0, 0, 0, 0.5);
+          position: absolute;
+          height: 20px;
+          left: 10px;
+          top: 20px;
+          width: fit-content;
+        }
+
+        #speed{
+          color: #fff;
+          background-color: rgba(0, 0, 0, 0.5);
+          position: absolute;
+          height: 20px;
+          left: 10px;
+          top: 40px;
+          width: fit-content;
+        }
       
       
-      
+        
       
     </style>
 
@@ -138,19 +158,24 @@
   </head>
   <body>
     
-    
+    <script type="module" src="/main.js"></script>
     <div id="fpsCounter" draggable="false">FPS: 0</div>
     
 
       <div id="container" draggable="false">
           <!-- The canvas where Three.js renders -->
           <canvas id="canvas"></canvas>
-
+          
           <!-- Sliders -->
-          <input type="range" id="slider1" min="0" max="1000" value="0" draggable="false">
-          <input draggable="false" type="range" id="slider2" min="0" max="1000" value="0">
+          <button onclick="updateFPS();" id="resetbutton">reset</button>
       </div>
-  
-    <script type="module" src="/main.js"></script>
+      <label class="switch">
+        <input type="checkbox" id="mySwitch">POV
+        <span class="slider round"></span>
+      </label>
+      <p id="speed">Speed:</p>
+    
+      
+    
   </body>
 </html>
