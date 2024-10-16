@@ -46,7 +46,7 @@ composerPOV.addPass(bloomPass);
 camera.position.set(10,5,10);
 camera.lookAt(0,0,0);
 
-const keys = {
+let keys = {
     w: false,
     s: false,
     a: false,
@@ -166,7 +166,7 @@ function loadTireModel(i) {
 }
 
 
-const groundPlaneGeometry = new THREE.PlaneGeometry(100, 100);
+const groundPlaneGeometry = new THREE.PlaneGeometry(1000, 1000);
 const groundPlane = applyMaterial(groundPlaneGeometry, "textures/asphalt/Asphalt026C_1K-JPG_Color.jpg", "textures/asphalt/Asphalt026C_1K-JPG_NormalDX.jpg", "textures/asphalt/Asphalt026C_1K-JPG_Roughness.jpg")
 groundPlane.rotation.x = -Math.PI / 2;
 scene.add(groundPlane);
@@ -193,17 +193,18 @@ groundBody.material = groundMaterial;
 
 // Setup des Fahrzeugs
 const carBody = new CANNON.Body({
-    mass: 1500,
+    mass: 2000,
     shape: new CANNON.Box(new CANNON.Vec3(3.8, 0.7, 1.5)),
 });
-
+carBody.centerOfMassOffset = new CANNON.Vec3(1, -90000, 0);
+carBody.angularDamping = 0.1;
 carBody.position.set(0, 5, 0);
 world.addBody(carBody);
 
 // Räder hinzufügen
 const wheelRadius = 0.45;
 const wheelMass = 50;
-const wheelShape = new CANNON.Sphere(wheelRadius, wheelRadius, 0.3, 12 * 8);
+const wheelShape = new CANNON.Sphere(wheelRadius, wheelRadius, 0.3, 12 * 8, 10);
 
 // Define the positions for each wheel directly
 const positionFL = new CANNON.Vec3(1.5, 1, 1);  // Front Left (Vorderrad links)
@@ -290,7 +291,7 @@ const RLhingeConstraint = new CANNON.HingeConstraint(carBody, WheelRL, {
 world.addConstraint(RLhingeConstraint);
 
 RLhingeConstraint.enableMotor();
-RLhingeConstraint.setMotorMaxForce(50);
+RLhingeConstraint.setMotorMaxForce(40);
 
 const RRhingeConstraint = new CANNON.HingeConstraint(carBody, WheelRR, {
     pivotA: new CANNON.Vec3(-2.6, -0.44, 1.7),
@@ -302,7 +303,7 @@ const RRhingeConstraint = new CANNON.HingeConstraint(carBody, WheelRR, {
 world.addConstraint(RRhingeConstraint);
 
 RRhingeConstraint.enableMotor();
-RRhingeConstraint.setMotorMaxForce(50);
+RRhingeConstraint.setMotorMaxForce(40);
 
 
 
@@ -331,13 +332,13 @@ function animate() {
 
     //renderer.render(scene, camera);
     if (ThreeCarBody != null && switchElement.checked){
-        composerPOV.render();
-    }else{
         composer.render();
+    }else{
+        composerPOV.render();
     }
 
     controls.update();
-    //cannonDebugger.update();
+    cannonDebugger.update();
 
 
     if (ThreeCarBody != null) syncObjectWithBody(ThreeCarBody, carBody);
@@ -359,9 +360,9 @@ animate();
 
 
 function steer(angle) {
-    let actual_angle = angle / -300
+    let ratio = calcSteeringSpeed(carBody.velocity.length().toFixed(1),50)
+    let actual_angle = angle / -200 * ratio
    
-
     if (actual_angle === 0) {
         //console.log("zurückgesetzt");
     } else {
@@ -386,7 +387,17 @@ function drive(gasa) {
 }
 
 function reset() {
-    carBody.position.set(0,10,0);
+    carBody.position.set(0, 10, 0);
+    carBody.velocity.set(0, 0, 0);
+    carBody.angularVelocity.set(0, 0, 0);
+    carBody.quaternion.set(0, 0, 0, 1);
+    keys = {
+        w: false,
+        s: false,
+        a: false,
+        d: false,
+        shift: false
+    };
 }
 
 function updateFPS() {
@@ -409,9 +420,9 @@ function applyMaterial(object, colorTexturePath, normalTexturePath, roughnessTex
     const roughnessTexture = loader.load(roughnessTexturePath);
 
     // Scale the textures (adjust the scale as needed)
-    colorTexture.repeat.set(20, 20);
-    normalTexture.repeat.set(20, 20);
-    roughnessTexture.repeat.set(20, 20);
+    colorTexture.repeat.set(200, 200);
+    normalTexture.repeat.set(200, 200);
+    roughnessTexture.repeat.set(200, 200);
 
     normalTexture.invert = true;
 
@@ -524,3 +535,19 @@ function onWindowResize() {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
+
+let resetbutton = document.getElementById("resetbutton")
+resetbutton.addEventListener('click', reset);
+
+function calcSteeringSpeed(speed,maxSpeed){
+    let steeringRatio
+    let xSpeed
+    if(speed == 0){
+        xSpeed = 0;
+    }else{
+        xSpeed = speed/maxSpeed
+    }
+    steeringRatio = Math.pow(Math.E, -3*xSpeed);
+    return steeringRatio
+}
+
