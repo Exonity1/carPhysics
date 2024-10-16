@@ -8,6 +8,9 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
+let wait = false;
+let lastMoved = 2;
+let xSetTo = 2000;
 let speedElement = document.getElementById('speed');
 const switchElement = document.getElementById('mySwitch');
 let lastTime = Date.now(); // Initialisiere die letzte Zeit
@@ -55,7 +58,7 @@ let keys = {
 };
 
 let gas = 0;
-let speed = 100;
+let speed = 200;
 let steeringAngle = 0;
 
 
@@ -166,19 +169,15 @@ function loadTireModel(i) {
 }
 
 
-const groundPlaneGeometry = new THREE.PlaneGeometry(1000, 1000);
-const groundPlane = applyMaterial(groundPlaneGeometry, "textures/asphalt/Asphalt026C_1K-JPG_Color.jpg", "textures/asphalt/Asphalt026C_1K-JPG_NormalDX.jpg", "textures/asphalt/Asphalt026C_1K-JPG_Roughness.jpg")
-groundPlane.rotation.x = -Math.PI / 2;
-scene.add(groundPlane);
 
+const groundPlaneGeometry = new THREE.PlaneGeometry(1000, 100);
+let groundPlane1 = applyMaterial(groundPlaneGeometry, "textures/asphalt/Asphalt026C_1K-JPG_Color.jpg", "textures/asphalt/Asphalt026C_1K-JPG_NormalDX.jpg", "textures/asphalt/Asphalt026C_1K-JPG_Roughness.jpg")
+groundPlane1.rotation.x = -Math.PI / 2;
+scene.add(groundPlane1);
 
-
-
-
-
-
-
-
+let groundPlane2 = groundPlane1.clone();
+groundPlane2.position.set(1000, 0, 0);
+scene.add(groundPlane2);
 
 const groundMaterial = new CANNON.Material('groundMaterial');
 // Create a ground body
@@ -329,7 +328,7 @@ function animate() {
     
     world.step(1 / 60, deltaTime, 10);
     checkKeyStates();
-
+    replaceGroundPlane();
     //renderer.render(scene, camera);
     if (ThreeCarBody != null && switchElement.checked){
         composer.render();
@@ -357,10 +356,34 @@ animate();
 
 
 
-
+function replaceGroundPlane() {
+    if(wait){
+        return;
+    }
+    let x = Math.floor(carBody.position.x);
+    if(x % 1000 < 2 && x % 1000 > -1 && x > 500){
+        wait = true
+        setTimeout(() => {
+            if(lastMoved == 1){
+                groundPlane2.position.x = xSetTo;
+                lastMoved = 2;
+                xSetTo += 1000;
+            }else if(lastMoved == 2){
+                groundPlane1.position.x = xSetTo;
+                lastMoved = 1;
+                xSetTo += 1000;
+            }else{
+                console.error("lastMoved is not 1 or 2 // Servere Error While Moving GroundPlane");
+            }
+            wait = false;
+        }, 2000);
+    }
+    console.log(x);
+    console.log(x % 1000);
+}
 
 function steer(angle) {
-    let ratio = calcSteeringSpeed(carBody.velocity.length().toFixed(1),50)
+    let ratio = calcSteeringSpeed(carBody.velocity.length().toFixed(1),95)
     let actual_angle = angle / -200 * ratio
    
     if (actual_angle === 0) {
@@ -420,9 +443,9 @@ function applyMaterial(object, colorTexturePath, normalTexturePath, roughnessTex
     const roughnessTexture = loader.load(roughnessTexturePath);
 
     // Scale the textures (adjust the scale as needed)
-    colorTexture.repeat.set(200, 200);
-    normalTexture.repeat.set(200, 200);
-    roughnessTexture.repeat.set(200, 200);
+    colorTexture.repeat.set(200, 20);
+    normalTexture.repeat.set(200, 20);
+    roughnessTexture.repeat.set(200, 20);
 
     normalTexture.invert = true;
 
@@ -539,7 +562,7 @@ function onWindowResize() {
 let resetbutton = document.getElementById("resetbutton")
 resetbutton.addEventListener('click', reset);
 
-function calcSteeringSpeed(speed,maxSpeed){
+function calcSteeringSpeed(speed, maxSpeed){
     let steeringRatio
     let xSpeed
     if(speed == 0){
@@ -547,7 +570,7 @@ function calcSteeringSpeed(speed,maxSpeed){
     }else{
         xSpeed = speed/maxSpeed
     }
-    steeringRatio = Math.pow(Math.E, -3*xSpeed);
+    steeringRatio = Math.pow(Math.E, -8*xSpeed);
     return steeringRatio
 }
 

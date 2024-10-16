@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>breaker</title>
+    <title>Drift Shift</title>
     <style>
 
       body{
@@ -128,6 +128,7 @@
           left: 10px;
           top: 20px;
           width: fit-content;
+          z-index: 100000000000000000009999999;
         }
 
         #speed{
@@ -139,6 +140,24 @@
           top: 40px;
           width: fit-content;
         }
+        
+        #speedometer-container{
+          position: fixed;
+          aspect-ratio: 1;
+          
+          top: calc(100vh - 300px);
+          left: calc(100vw - 300px);
+          width: 300px;
+          background-color: rgba(0, 102, 255, 0.5);
+          color: white;
+          padding: 5px;
+          font-family: Arial, sans-serif;
+          user-select: none; /* Disable text selection */
+          -webkit-user-select: none; /* For Safari */
+          -moz-user-select: none; /* For Firefox */
+          -ms-user-select: none; /* For IE/Edge */
+        }
+      
       
       
         
@@ -158,24 +177,25 @@
   </head>
   <body>
     
-    <script type="module" src="/main.js"></script>
-    <div id="fpsCounter" draggable="false">FPS: 0</div>
     
+    <div id="fpsCounter" draggable="false">FPS: 0</div>
+    <button onclick="reset();" id="resetbutton">reset (NICHT DRÜCKEN EINFACH F5 DRÜCKEN!!!!!!)</button>
 
       <div id="container" draggable="false">
           <!-- The canvas where Three.js renders -->
           <canvas id="canvas"></canvas>
           
           <!-- Sliders -->
-          <button onclick="updateFPS();" id="resetbutton">reset</button>
       </div>
+      
       <label class="switch">
         <input type="checkbox" id="mySwitch">POV
         <span class="slider round"></span>
       </label>
       <p id="speed">Speed:</p>
+      <div id="speedometer-container"></div>
     
       
-    
+      <script type="module" src="/main.js"></script>
   </body>
 </html>
