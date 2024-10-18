@@ -33,18 +33,18 @@ document.body.appendChild(renderer.domElement);
 const composer = new EffectComposer(renderer);
 const renderPass = new RenderPass(scene, camera);
 composer.addPass(renderPass);
-const bloomPass = new UnrealBloomPass(
+/*const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.5,    // strength
-    1,    // radius
+    0.1,    // strength
+    0.1,    // radius
     2    // threshold
 );
-composer.addPass(bloomPass);
+composer.addPass(bloomPass);*/
 
 const composerPOV = new EffectComposer(renderer);
 const renderPassPOV = new RenderPass(scene, cameraPOV);
 composerPOV.addPass(renderPassPOV);
-composerPOV.addPass(bloomPass);
+//composerPOV.addPass(bloomPass);
 
 camera.position.set(10,5,10);
 camera.lookAt(0,0,0);
@@ -168,16 +168,43 @@ function loadTireModel(i) {
     );
 }
 
+let groundPlane1;
+let groundPlane2;
+loadStreetModel();
+function loadStreetModel() {
+
+    gLTFloader.load(
+
+        'models/streetasset.glb',
 
 
-const groundPlaneGeometry = new THREE.PlaneGeometry(1000, 100);
-let groundPlane1 = applyMaterial(groundPlaneGeometry, "textures/asphalt/Asphalt026C_1K-JPG_Color.jpg", "textures/asphalt/Asphalt026C_1K-JPG_NormalDX.jpg", "textures/asphalt/Asphalt026C_1K-JPG_Roughness.jpg")
-groundPlane1.rotation.x = -Math.PI / 2;
-scene.add(groundPlane1);
+        function(gltf) {
+            console.log("Model loaded");
+            const model = gltf.scene;
+            model.castShadow = true;
+            model.receiveShadow = true;
+            groundPlane1 = model;
+            setStreet();
+        },
+        // Called while loading is progressing
+        function(xhr) {
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        },
 
-let groundPlane2 = groundPlane1.clone();
-groundPlane2.position.set(1000, 0, 0);
-scene.add(groundPlane2);
+        // Called when loading has errors
+        function(error) {
+            console.log('An error happened', error);
+        }
+    );
+}
+
+function setStreet(){
+    scene.add(groundPlane1);
+    groundPlane2 = groundPlane1.clone();
+    groundPlane2.position.set(1000, 0, 0);
+    scene.add(groundPlane2);
+}
+
 
 const groundMaterial = new CANNON.Material('groundMaterial');
 // Create a ground body
@@ -378,8 +405,6 @@ function replaceGroundPlane() {
             wait = false;
         }, 2000);
     }
-    console.log(x);
-    console.log(x % 1000);
 }
 
 function steer(angle) {
@@ -476,15 +501,21 @@ function applyMaterial(object, colorTexturePath, normalTexturePath, roughnessTex
 function loadHDRI(path) {
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    const hdriLoader = new RGBELoader()
+    const hdriLoader = new RGBELoader();
+
     hdriLoader.load(path, function(texture) {
-        const envMap = pmremGenerator.fromEquirectangular(texture).texture;
-        texture.dispose();
-        scene.environment = envMap
-    });
+    const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+    texture.dispose();
+    pmremGenerator.dispose();
+    scene.environment = envMap;
+    scene.background = envMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.3;
+});
 
 }
-loadHDRI('textures/hdri/metro_vijzelgracht_2k.hdr');
+
+loadHDRI('textures/hdri/nightsky.hdr');
 
 function syncObjectWithBody(threeObject, cannonBody) {
     threeObject.position.copy(cannonBody.position);
@@ -554,9 +585,15 @@ function checkKeyStates() {
 
 window.addEventListener('resize', onWindowResize, false);
 function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize( width, height );
+
 }
 
 let resetbutton = document.getElementById("resetbutton")
