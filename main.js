@@ -8,11 +8,35 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
+class Loaded {
+    loaded = false;
+    max = 0;
+    cnt = 0;
+    fnct;
+
+    constructor(max, fnct) {
+        this.max = max;
+        this.fnct = fnct;
+    }
+
+    add() {
+        this.cnt++;
+        if (this.cnt >= this.max) {
+            this.loaded = true;
+            if (this.fnct) {
+                this.fnct(); // Call the function when loaded becomes true
+            }
+        }
+    }
+}
+let loadedclass = new Loaded(6, hideLoadingScreen);
+
 let wait = false;
 let lastMoved = 2;
 let xSetTo = 2000;
 let speedElement = document.getElementById('speed');
-const switchElement = document.getElementById('mySwitch');
+const switchElement1 = document.getElementById('mySwitch1');
+const switchElement2 = document.getElementById('mySwitch2');
 let lastTime = Date.now(); // Initialisiere die letzte Zeit
 let deltaTime = 0;
 let fps = 0;
@@ -40,15 +64,12 @@ composer.addPass(renderPass);
     2    // threshold
 );
 composer.addPass(bloomPass);*/
-
 const composerPOV = new EffectComposer(renderer);
 const renderPassPOV = new RenderPass(scene, cameraPOV);
 composerPOV.addPass(renderPassPOV);
 //composerPOV.addPass(bloomPass);
-
 camera.position.set(10,5,10);
 camera.lookAt(0,0,0);
-
 let keys = {
     w: false,
     s: false,
@@ -56,9 +77,8 @@ let keys = {
     d: false,
     shift: false
 };
-
 let gas = 0;
-let speed = 200;
+let speed = 150;
 let steeringAngle = 0;
 
 
@@ -93,15 +113,17 @@ function loadCarBody() {
             ThreeCarBody.add(cameraPOV)
             
             scene.add(ThreeCarBody);
+            loadedclass.add();
         },
         // Called while loading is progressing
         function(xhr) {
-            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            refreshLoadingScreen();
         },
 
         // Called when loading has errors
         function(error) {
             console.log('An error happened', error);
+            errorAlert();
         }
     );
 }
@@ -157,19 +179,23 @@ function loadTireModel(i) {
                 default:
                     console.log("Invalid value of i");
             }
+            loadedclass.add();
 
         },
         function(xhr) {
-            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            refreshLoadingScreen();
         },
         function(error) {
             console.log('An error happened', error);
+            errorAlert();
         }
     );
 }
-
+const boundsMaterial = new CANNON.Material('boundsMaterial');
 let groundPlane1;
+let groudPlane1Coliders = [];
 let groundPlane2;
+let groudPlane2Coliders = [];
 loadStreetModel();
 function loadStreetModel() {
 
@@ -185,17 +211,80 @@ function loadStreetModel() {
             model.receiveShadow = true;
             groundPlane1 = model;
             setStreet();
+            loadedclass.add();
         },
         // Called while loading is progressing
         function(xhr) {
-            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            refreshLoadingScreen();
         },
 
         // Called when loading has errors
         function(error) {
             console.log('An error happened', error);
+            errorAlert();
         }
     );
+}
+
+function innitColiders(){
+    
+    groudPlane1Coliders.push(new CANNON.Body({
+        mass: 0,
+        shape: new CANNON.Box(new CANNON.Vec3(1000, 2, 1.7)),
+        collisionFilterGroup: 3, // Assign bodyA to group 1
+        collisionFilterMask:  ~2// Collide with everything except group 2
+    }));
+    groudPlane1Coliders[0].position.set(0, 0, 0);
+    
+    groudPlane1Coliders.push(new CANNON.Body({
+        mass: 0,
+        shape: new CANNON.Box(new CANNON.Vec3(1000, 2, 1)),
+        collisionFilterGroup: 3, // Assign bodyA to group 1
+        collisionFilterMask: ~2 // Collide with everything except group 2
+    }));
+    groudPlane1Coliders[1].position.set(0, 0, 15);
+
+    groudPlane1Coliders.push(new CANNON.Body({
+        mass: 0,
+        shape: new CANNON.Box(new CANNON.Vec3(1000, 2, 1)),
+        collisionFilterGroup: 3, // Assign bodyA to group 1
+        collisionFilterMask: ~2 // Collide with everything except group 2
+    }));
+    groudPlane1Coliders[2].position.set(0, 0, -15);
+
+    for(let i = 0; i < groudPlane1Coliders.length; i++){
+        groudPlane1Coliders[i].material = boundsMaterial;
+        world.addBody(groudPlane1Coliders[i]);
+    }
+
+    groudPlane2Coliders.push(new CANNON.Body({
+        mass: 0,
+        shape: new CANNON.Box(new CANNON.Vec3(1000, 2, 1.7)),
+        collisionFilterGroup: 3, // Assign bodyA to group 1
+        collisionFilterMask: ~2 // Collide with everything except group 2
+    }));
+    groudPlane2Coliders[0].position.set(1000, 0, 0);
+    
+    groudPlane2Coliders.push(new CANNON.Body({
+        mass: 0,
+        shape: new CANNON.Box(new CANNON.Vec3(1000, 2, 1)),
+        collisionFilterGroup: 3, // Assign bodyA to group 1
+        collisionFilterMask: ~2 // Collide with everything except group 2
+    }));
+    groudPlane2Coliders[1].position.set(1000, 0, 15);
+
+    groudPlane2Coliders.push(new CANNON.Body({
+        mass: 0,
+        shape: new CANNON.Box(new CANNON.Vec3(1000, 2, 1)),
+        collisionFilterGroup: 3, // Assign bodyA to group 1
+        collisionFilterMask: ~2 // Collide with everything except group 2
+    }));
+    groudPlane2Coliders[2].position.set(1000, 0, -15);
+
+    for(let i = 0; i < groudPlane2Coliders.length; i++){
+        groudPlane2Coliders[i].material = boundsMaterial;
+        world.addBody(groudPlane2Coliders[i]);
+    }
 }
 
 function setStreet(){
@@ -203,6 +292,7 @@ function setStreet(){
     groundPlane2 = groundPlane1.clone();
     groundPlane2.position.set(1000, 0, 0);
     scene.add(groundPlane2);
+    innitColiders();
 }
 
 
@@ -210,21 +300,25 @@ const groundMaterial = new CANNON.Material('groundMaterial');
 // Create a ground body
 const groundBody = new CANNON.Body({
     mass: 0, // Mass 0 makes it static
-    shape: new CANNON.Plane(), // Create a plane shape
+    shape: new CANNON.Plane(),
+    collisionFilterGroup: 5, 
 });
 groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2); // Rotate it to be flat
 world.addBody(groundBody); // Add the ground body to the world
 
 groundBody.material = groundMaterial;
 
+const carCollisionMaterial = new CANNON.Material('carCollisionMaterial'); 
 // Setup des Fahrzeugs
 const carBody = new CANNON.Body({
     mass: 2000,
     shape: new CANNON.Box(new CANNON.Vec3(3.8, 0.7, 1.5)),
+    collisionFilterGroup: 5, // Assign bodyA to group 1
+    material: carCollisionMaterial
 });
 carBody.centerOfMassOffset = new CANNON.Vec3(1, -90000, 0);
 carBody.angularDamping = 0.1;
-carBody.position.set(0, 5, 0);
+carBody.position.set(0, 4, 5);
 world.addBody(carBody);
 
 // Räder hinzufügen
@@ -242,6 +336,8 @@ const positionRR = new CANNON.Vec3(-1.5, 1, -1); // Rear Right (Hinterrad rechts
 const WheelFL = new CANNON.Body({
     mass: wheelMass,
     shape: wheelShape,
+    collisionFilterGroup: 2, // Assign bodyB to group 2
+    collisionFilterMask: ~3 // Collide with everything except group 1
 });
 WheelFL.position.copy(positionFL);
 WheelFL.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
@@ -250,6 +346,8 @@ world.addBody(WheelFL);
 const WheelFR = new CANNON.Body({
     mass: wheelMass,
     shape: wheelShape,
+    collisionFilterGroup: 2, // Assign bodyB to group 2
+    collisionFilterMask: ~3 // Collide with everything except group 1
 });
 WheelFR.position.copy(positionFR);
 WheelFR.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
@@ -258,6 +356,8 @@ world.addBody(WheelFR);
 const WheelRL = new CANNON.Body({
     mass: wheelMass,
     shape: wheelShape,
+    collisionFilterGroup: 2, // Assign bodyB to group 2
+    collisionFilterMask: ~3 // Collide with everything except group 1
 });
 WheelRL.position.copy(positionRL);
 WheelRL.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
@@ -266,6 +366,8 @@ world.addBody(WheelRL);
 const WheelRR = new CANNON.Body({
     mass: wheelMass,
     shape: wheelShape,
+    collisionFilterGroup: 2, // Assign bodyB to group 2
+    collisionFilterMask: ~3 // Collide with everything except group 1
 });
 WheelRR.position.copy(positionRR);
 WheelRR.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
@@ -273,10 +375,14 @@ world.addBody(WheelRR);
 
 const wheelMaterial = new CANNON.Material('wheelMaterial');
 
-
 const wheelGroundContactMaterial = new CANNON.ContactMaterial(wheelMaterial, groundMaterial, {
     friction: 0.4,  // Adjust for more or less grip
     restitution: 0  // Set to zero to avoid bouncing
+});
+
+const carBodyBoundsContactMaterial = new CANNON.ContactMaterial(carCollisionMaterial, boundsMaterial, {
+    friction: 0.001,  // Adjust for more or less grip
+    restitution: 1  // Set to zero to avoid bouncing
 });
 
 WheelFL.material = wheelMaterial;
@@ -285,6 +391,7 @@ WheelRL.material = wheelMaterial;
 WheelRR.material = wheelMaterial;
 
 world.addContactMaterial(wheelGroundContactMaterial);
+world.addContactMaterial(carBodyBoundsContactMaterial);
 
 
 
@@ -357,14 +464,17 @@ function animate() {
     checkKeyStates();
     replaceGroundPlane();
     //renderer.render(scene, camera);
-    if (ThreeCarBody != null && switchElement.checked){
+    if (ThreeCarBody != null && switchElement1.checked){
         composer.render();
     }else{
         composerPOV.render();
     }
+    if(switchElement2.checked){
+        cannonDebugger.update();
+    }
 
     controls.update();
-    cannonDebugger.update();
+    
 
 
     if (ThreeCarBody != null) syncObjectWithBody(ThreeCarBody, carBody);
@@ -388,27 +498,33 @@ function replaceGroundPlane() {
         return;
     }
     let x = Math.floor(carBody.position.x);
-    if(x % 1000 < 2 && x % 1000 > -1 && x > 500){
+    if(x % 1000 < 2 && x > 500){
         wait = true
         setTimeout(() => {
             if(lastMoved == 1){
                 groundPlane2.position.x = xSetTo;
+                groudPlane2Coliders.forEach(body => {
+                    body.position.x = xSetTo;
+                });
                 lastMoved = 2;
                 xSetTo += 1000;
             }else if(lastMoved == 2){
                 groundPlane1.position.x = xSetTo;
+                groudPlane1Coliders.forEach(body => {
+                    body.position.x = xSetTo;
+                });
                 lastMoved = 1;
                 xSetTo += 1000;
             }else{
                 console.error("lastMoved is not 1 or 2 // Servere Error While Moving GroundPlane");
             }
             wait = false;
-        }, 2000);
+        }, 3000);
     }
 }
 
 function steer(angle) {
-    let ratio = calcSteeringSpeed(carBody.velocity.length().toFixed(1),95)
+    let ratio = calcSteeringSpeed(carBody.velocity.length().toFixed(1),70)
     let actual_angle = angle / -200 * ratio
    
     if (actual_angle === 0) {
@@ -514,7 +630,6 @@ function loadHDRI(path) {
 });
 
 }
-
 loadHDRI('textures/hdri/nightsky.hdr');
 
 function syncObjectWithBody(threeObject, cannonBody) {
@@ -607,7 +722,24 @@ function calcSteeringSpeed(speed, maxSpeed){
     }else{
         xSpeed = speed/maxSpeed
     }
-    steeringRatio = Math.pow(Math.E, -8*xSpeed);
+    steeringRatio = Math.pow(Math.E, -5*xSpeed);
     return steeringRatio
 }
 
+function hideLoadingScreen() {
+    document.getElementById('loadingdiv').style.display = 'none';
+}
+
+function refreshLoadingScreen(){
+    let loadingText = document.getElementById('loadingstuff');
+    if(loadingText.innerText === "Stuff is Still Loading /"){
+        loadingText.innerText = "Stuff is Still Loading -";
+    }else{
+        loadingText.innerText = "Stuff is Still Loading /";
+    }
+}
+
+function errorAlert(){
+    document.getElementById('loadingstuff').innerText = "An Error Occured While Loading";
+    document.getElementById('loadingstuff').style.color = "red";
+}
