@@ -54,7 +54,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
-
+world.solver.iterations = 20; // Default is 10, increase as needed.
+world.solver.tolerance = 0.01; // Lowering this can make constraints more accurate.
 const composer = new EffectComposer(renderer);
 const renderPass = new RenderPass(scene, camera);
 composer.addPass(renderPass);
@@ -79,7 +80,7 @@ let keys = {
     shift: false
 };
 let gas = 0;
-let speed = 150;
+let speed = 200;
 let steeringAngle = 0;
 
 
@@ -111,8 +112,13 @@ function loadCarBody() {
             cameraPOV.position.y = 3;
             cameraPOV.position.z = 0;
             cameraPOV.lookAt(0, 1.5, 0)
+            /*
+            cameraPOV.position.x = 5;
+            cameraPOV.position.y = 1.3;
+            cameraPOV.position.z = 2.5;
+            cameraPOV.lookAt(0, 1.5, 0)
+            */
             ThreeCarBody.add(cameraPOV)
-            
             scene.add(ThreeCarBody);
             loadedclass.add();
         },
@@ -377,8 +383,8 @@ world.addBody(WheelRR);
 const wheelMaterial = new CANNON.Material('wheelMaterial');
 
 const wheelGroundContactMaterial = new CANNON.ContactMaterial(wheelMaterial, groundMaterial, {
-    friction: 0.6,  // Adjust for more or less grip
-    restitution: 0  // Set to zero to avoid bouncing
+    friction: 0.9,  // Adjust for more or less grip
+    restitution: 0.001  // Set to zero to avoid bouncing
 });
 
 const carBodyBoundsContactMaterial = new CANNON.ContactMaterial(carCollisionMaterial, boundsMaterial, {
@@ -401,7 +407,9 @@ let FLhingeConstraint = new CANNON.HingeConstraint(carBody, WheelFL, {
     pivotA: new CANNON.Vec3(2.15, -0.4, -1.6),
     pivotB: new CANNON.Vec3(0, 0, 0),
     axisA: new CANNON.Vec3(0, 0, 1),
-    axisB: new CANNON.Vec3(0, 1, 0)
+    axisB: new CANNON.Vec3(0, 1, 0),
+    stiffness: 0.1,
+    relaxation: 1
 });
 
 world.addConstraint(FLhingeConstraint);
@@ -410,7 +418,9 @@ let FRhingeConstraint = new CANNON.HingeConstraint(carBody, WheelFR, {
     pivotA: new CANNON.Vec3(2.15, -0.4, 1.6),
     pivotB: new CANNON.Vec3(0, 0, 0),
     axisA: new CANNON.Vec3(0, 0, 1),
-    axisB: new CANNON.Vec3(0, 1, 0)
+    axisB: new CANNON.Vec3(0, 1, 0),
+    stiffness: 0.1,
+    relaxation: 1
 });
 
 world.addConstraint(FRhingeConstraint);
@@ -419,7 +429,9 @@ const RLhingeConstraint = new CANNON.HingeConstraint(carBody, WheelRL, {
     pivotA: new CANNON.Vec3(-2.6, -0.4, -1.7),
     pivotB: new CANNON.Vec3(0, 0, 0),
     axisA: new CANNON.Vec3(0, 0, 1),
-    axisB: new CANNON.Vec3(0, 1, 0)
+    axisB: new CANNON.Vec3(0, 1, 0),
+    stiffness: 0.1,
+    relaxation: 1
 });
 
 world.addConstraint(RLhingeConstraint);
@@ -428,10 +440,12 @@ RLhingeConstraint.enableMotor();
 RLhingeConstraint.setMotorMaxForce(40);
 
 const RRhingeConstraint = new CANNON.HingeConstraint(carBody, WheelRR, {
-    pivotA: new CANNON.Vec3(-2.6, -0.44, 1.7),
+    pivotA: new CANNON.Vec3(-2.6, -0.4, 1.7),
     pivotB: new CANNON.Vec3(0, 0, 0),
     axisA: new CANNON.Vec3(0, 0, 1),
-    axisB: new CANNON.Vec3(0, 1, 0)
+    axisB: new CANNON.Vec3(0, 1, 0),
+    stiffness: 0.1,
+    relaxation: 1
 });
 
 world.addConstraint(RRhingeConstraint);
@@ -491,7 +505,7 @@ function animate() {
     }
     
 
-    updateSpeedometer(Math.abs(aSpeed), 260);
+    updateSpeedometer(Math.abs(aSpeed), 340);
     updateFPS();
     steer(steeringAngle);
     drive(gas);
@@ -552,7 +566,7 @@ function replaceGroundPlane() {
 }
 
 function steer(angle) {
-    let ratio = calcSteeringSpeed(carBody.velocity.length().toFixed(1),70)
+    let ratio = calcSteeringSpeed(carBody.velocity.length().toFixed(1),95)
     let actual_angle = angle / -200 * ratio
    
     if (actual_angle === 0) {
