@@ -311,17 +311,20 @@ groundBody.material = groundMaterial;
 
 const carCollisionMaterial = new CANNON.Material('carCollisionMaterial'); 
 // Setup des Fahrzeugs
-const carBody = new CANNON.Body({
+let carBody = new CANNON.Body({
     mass: 2000,
     shape: new CANNON.Box(new CANNON.Vec3(3.8, 0.7, 1.5)),
     collisionFilterGroup: 5, // Assign bodyA to group 1
     material: carCollisionMaterial
 });
-carBody.centerOfMassOffset = new CANNON.Vec3(1, -90000, 0);
+carBody.centerOfMassOffset = new CANNON.Vec3(0, -1, 0);
 carBody.angularDamping = 0.1;
 carBody.position.set(0, 4, 5);
 world.addBody(carBody);
 
+
+
+/*
 // Räder hinzufügen
 const wheelRadius = 0.45;
 const wheelMass = 50;
@@ -381,10 +384,7 @@ const wheelGroundContactMaterial = new CANNON.ContactMaterial(wheelMaterial, gro
     restitution: 0  // Set to zero to avoid bouncing
 });
 
-const carBodyBoundsContactMaterial = new CANNON.ContactMaterial(carCollisionMaterial, boundsMaterial, {
-    friction: 0.001,  // Adjust for more or less grip
-    restitution: 1  // Set to zero to avoid bouncing
-});
+
 
 WheelFL.material = wheelMaterial;
 WheelFR.material = wheelMaterial;
@@ -392,10 +392,23 @@ WheelRL.material = wheelMaterial;
 WheelRR.material = wheelMaterial;
 
 world.addContactMaterial(wheelGroundContactMaterial);
+*/
+
+const carBodyGroundContactMaterial = new CANNON.ContactMaterial(carCollisionMaterial, groundMaterial, {
+    friction: 0.0,  // Adjust for more or less grip
+    restitution: 0.1,  // Set to zero to avoid bouncing
+    contactEquationStiffness: 1e8,
+    contactEquationRelaxation: 3,
+});
+world.addContactMaterial(carBodyGroundContactMaterial);
+const carBodyBoundsContactMaterial = new CANNON.ContactMaterial(carCollisionMaterial, boundsMaterial, {
+    friction: 0.001,  // Adjust for more or less grip
+    restitution: 1  // Set to zero to avoid bouncing
+});
 world.addContactMaterial(carBodyBoundsContactMaterial);
 
 
-
+/*
 // Constraints für die Räder hinzufügen
 let FLhingeConstraint = new CANNON.HingeConstraint(carBody, WheelFL, {
     pivotA: new CANNON.Vec3(2.15, -0.4, -1.6),
@@ -438,6 +451,7 @@ world.addConstraint(RRhingeConstraint);
 
 RRhingeConstraint.enableMotor();
 RRhingeConstraint.setMotorMaxForce(40);
+*/
 
 
 
@@ -449,8 +463,8 @@ RRhingeConstraint.setMotorMaxForce(40);
 
 
 
-
-
+let forceWS = 4000;
+let forceAD = 3000;
 
 
 
@@ -479,10 +493,10 @@ function animate() {
 
 
     if (ThreeCarBody != null) syncObjectWithBody(ThreeCarBody, carBody);
-    if (WheelFLBody != null) syncObjectWithBody(WheelFLBody, WheelFL);
+    /*if (WheelFLBody != null) syncObjectWithBody(WheelFLBody, WheelFL);
     if (WheelFRBody != null) syncObjectWithBody(WheelFRBody, WheelFR);
     if (WheelRLBody != null) syncObjectWithBody(WheelRLBody, WheelRL);
-    if (WheelRRBody != null) syncObjectWithBody(WheelRRBody, WheelRR);
+    if (WheelRRBody != null) syncObjectWithBody(WheelRRBody, WheelRR);*/
     let aSpeed = carBody.velocity.length().toFixed(2)*3.6;
     if (Math.abs(aSpeed) >= 10) {
         speedElement.childNodes[0].nodeValue = `${aSpeed.toFixed(0)}`;
@@ -552,28 +566,28 @@ function replaceGroundPlane() {
 }
 
 function steer(angle) {
-    let ratio = calcSteeringSpeed(carBody.velocity.length().toFixed(1),70)
-    let actual_angle = angle / -200 * ratio
-   
-    if (actual_angle === 0) {
-        //console.log("zurückgesetzt");
-    } else {
-        FLhingeConstraint.axisA.x = actual_angle;
-        FRhingeConstraint.axisA.x = actual_angle;
+    const forceLeft= new CANNON.Vec3(0, forceAD, 0)
+    const forceRigth= new CANNON.Vec3(0, -forceAD, 0)
+    
+    if (angle == 1) {
+        carBody.applyTorque(forceRigth);
+    } else if (angle == -1) {
+        carBody.applyTorque(forceLeft);
+    } else if (angle == 0) {
+        
     }
 }
 
 function drive(gasa) {
 
+    const forceForward = new CANNON.Vec3(forceWS, 0, 0);
+    const forceBack = new CANNON.Vec3(-forceWS, 0, 0);
     if (gasa == 1) {
-        RRhingeConstraint.setMotorSpeed(speed);
-        RLhingeConstraint.setMotorSpeed(speed);
+        carBody.applyLocalForce(forceForward);
     } else if (gasa == -1) {
-        RRhingeConstraint.setMotorSpeed(speed * -1);
-        RLhingeConstraint.setMotorSpeed(speed * -1);
+        carBody.applyLocalForce(forceBack);
     } else if (gasa == 0) {
-        RRhingeConstraint.setMotorSpeed(0);
-        RLhingeConstraint.setMotorSpeed(0);
+        
 
     }
 }
@@ -652,28 +666,26 @@ function checkKeyStates() {
 
 
     if (keys.a && !keys.d) {
-        if (steeringAngle > -100) steeringAngle = steeringAngle - 2;
+        steeringAngle = -1;
     }
 
 
     if (keys.d && !keys.a) {
-        if (steeringAngle < 100) steeringAngle = steeringAngle + 2;
+        steeringAngle = 1;
     }
 
     if (keys.a && keys.d) {
-        //donothing
+        steeringAngle = 0;
     }
     if (!keys.a && !keys.d) {
-        if (steeringAngle > 0) steeringAngle = steeringAngle - 2;
-        if (steeringAngle < 0) steeringAngle = steeringAngle + 2;
-        if (steeringAngle == 0);//donothing
+        steeringAngle = 0;
     }
 
     if(keys.shift){
-        wheelGroundContactMaterial.friction = 0.1;
+        //wheelGroundContactMaterial.friction = 0.1;
     }
     if(!keys.shift){
-        wheelGroundContactMaterial.friction = 0.65;
+        //wheelGroundContactMaterial.friction = 0.65;
     }
     //console.log(steeringAngle);
 }
