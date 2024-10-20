@@ -34,7 +34,8 @@ let loadedclass = new Loaded(6, hideLoadingScreen);
 let wait = false;
 let lastMoved = 2;
 let xSetTo = 2000;
-let speedElement = document.getElementById('speed');
+let speedElement = document.getElementsByClassName('speed');
+speedElement = speedElement[0];
 const switchElement1 = document.getElementById('mySwitch1');
 const switchElement2 = document.getElementById('mySwitch2');
 let lastTime = Date.now(); // Initialisiere die letzte Zeit
@@ -201,7 +202,7 @@ function loadStreetModel() {
 
     gLTFloader.load(
 
-        'models/streetasset.glb',
+        'models/streetassetver3.glb',
 
 
         function(gltf) {
@@ -230,7 +231,7 @@ function innitColiders(){
     
     groudPlane1Coliders.push(new CANNON.Body({
         mass: 0,
-        shape: new CANNON.Box(new CANNON.Vec3(1000, 2, 1.7)),
+        shape: new CANNON.Box(new CANNON.Vec3(1000, 2, 1.8)),
         collisionFilterGroup: 3, // Assign bodyA to group 1
         collisionFilterMask:  ~2// Collide with everything except group 2
     }));
@@ -259,7 +260,7 @@ function innitColiders(){
 
     groudPlane2Coliders.push(new CANNON.Body({
         mass: 0,
-        shape: new CANNON.Box(new CANNON.Vec3(1000, 2, 1.7)),
+        shape: new CANNON.Box(new CANNON.Vec3(1000, 2, 1.8)),
         collisionFilterGroup: 3, // Assign bodyA to group 1
         collisionFilterMask: ~2 // Collide with everything except group 2
     }));
@@ -376,7 +377,7 @@ world.addBody(WheelRR);
 const wheelMaterial = new CANNON.Material('wheelMaterial');
 
 const wheelGroundContactMaterial = new CANNON.ContactMaterial(wheelMaterial, groundMaterial, {
-    friction: 0.4,  // Adjust for more or less grip
+    friction: 0.6,  // Adjust for more or less grip
     restitution: 0  // Set to zero to avoid bouncing
 });
 
@@ -483,8 +484,14 @@ function animate() {
     if (WheelRLBody != null) syncObjectWithBody(WheelRLBody, WheelRL);
     if (WheelRRBody != null) syncObjectWithBody(WheelRRBody, WheelRR);
     let aSpeed = carBody.velocity.length().toFixed(2)*3.6;
-    speedElement.innerText = `Speed: ${aSpeed.toFixed(1)} km/h`;
+    if (Math.abs(aSpeed) >= 10) {
+        speedElement.childNodes[0].nodeValue = `${aSpeed.toFixed(0)}`;
+    } else {
+        speedElement.childNodes[0].nodeValue = `${aSpeed.toFixed(1)}`;
+    }
+    
 
+    updateSpeedometer(Math.abs(aSpeed), 260);
     updateFPS();
     steer(steeringAngle);
     drive(gas);
@@ -492,6 +499,27 @@ function animate() {
 animate();
 
 
+
+
+
+
+
+function updateSpeedometer(speed, maxSpeed){
+    let bSpeed = speed/maxSpeed;
+    let speedmarkers = [];
+    for(let i = 1; i < 14; i++){
+        speedmarkers.push(document.getElementsByClassName(`speed-marker-${i}`));
+    }
+    speedmarkers = speedmarkers.reverse();
+    let c = Math.floor(bSpeed*13);
+    for(let i = 0; i < 13; i++){
+        if (i <= c) {
+            speedmarkers[i][0].style.opacity = 0.95;
+        } else {
+            speedmarkers[i][0].style.opacity = 0.3;
+        }
+    }
+}
 
 function replaceGroundPlane() {
     if(wait){
@@ -551,17 +579,7 @@ function drive(gasa) {
 }
 
 function reset() {
-    carBody.position.set(0, 10, 0);
-    carBody.velocity.set(0, 0, 0);
-    carBody.angularVelocity.set(0, 0, 0);
-    carBody.quaternion.set(0, 0, 0, 1);
-    keys = {
-        w: false,
-        s: false,
-        a: false,
-        d: false,
-        shift: false
-    };
+    location.reload();
 }
 
 function updateFPS() {
@@ -574,44 +592,6 @@ function updateFPS() {
     }
 
     document.getElementById('fpsCounter').textContent = `FPS: ${fps}`;
-}
-
-function applyMaterial(object, colorTexturePath, normalTexturePath, roughnessTexturePath) {
-    // Load textures
-    const loader = new THREE.TextureLoader();
-    const colorTexture = loader.load(colorTexturePath);
-    const normalTexture = loader.load(normalTexturePath);
-    const roughnessTexture = loader.load(roughnessTexturePath);
-
-    // Scale the textures (adjust the scale as needed)
-    colorTexture.repeat.set(200, 20);
-    normalTexture.repeat.set(200, 20);
-    roughnessTexture.repeat.set(200, 20);
-
-    normalTexture.invert = true;
-
-    colorTexture.wrapS = THREE.RepeatWrapping;
-    colorTexture.wrapT = THREE.RepeatWrapping;
-    normalTexture.wrapS = THREE.RepeatWrapping;
-    normalTexture.wrapT = THREE.RepeatWrapping;
-    roughnessTexture.wrapS = THREE.RepeatWrapping;
-    roughnessTexture.wrapT = THREE.RepeatWrapping;
-
-    // Create MeshPhysicalMaterial
-    const material = new THREE.MeshPhysicalMaterial({
-        map: colorTexture,
-        normalMap: normalTexture,
-        roughnessMap: roughnessTexture,
-    });
-
-    // Apply material to object
-    const mesh = new THREE.Mesh(object, material);
-
-    // Enable shadows
-    mesh.castShadow = true;     // Object will cast shadows
-    mesh.receiveShadow = true;  // Object will receive shadows
-
-    return mesh;
 }
 
 function loadHDRI(path) {
