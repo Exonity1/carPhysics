@@ -44,6 +44,7 @@ let speedElement = document.getElementsByClassName('speed')[0];
 let keys = {w: false, s: false, a: false, d: false, shift: false};
 let gas = 0;
 let speed = 200;
+let motorForce = 40;
 let steeringAngle = 0;
 
 const switchElement1 = document.getElementById('mySwitch1');
@@ -281,7 +282,7 @@ const RLhingeConstraint = new CANNON.HingeConstraint(carBody, WheelRL, {
 world.addConstraint(RLhingeConstraint);
 
 RLhingeConstraint.enableMotor();
-RLhingeConstraint.setMotorMaxForce(40);
+RLhingeConstraint.setMotorMaxForce(motorForce);
 
 const RRhingeConstraint = new CANNON.HingeConstraint(carBody, WheelRR, {
     pivotA: new CANNON.Vec3(-2.6, -0.4, 1.7),
@@ -295,7 +296,7 @@ const RRhingeConstraint = new CANNON.HingeConstraint(carBody, WheelRR, {
 world.addConstraint(RRhingeConstraint);
 
 RRhingeConstraint.enableMotor();
-RRhingeConstraint.setMotorMaxForce(40);
+RRhingeConstraint.setMotorMaxForce(motorForce);
 
 
 
