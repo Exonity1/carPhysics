@@ -10,6 +10,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
 import { SSRPass } from 'three/addons/postprocessing/SSRPass.js';
 import { TAARenderPass } from 'three/addons/postprocessing/TAARenderPass.js';
+import { Car } from './Classes/car.js';
 
 class Loaded {
     loaded = false;
@@ -34,156 +35,7 @@ class Loaded {
 }
 let loadedclass = new Loaded(6, hideLoadingScreen);
 
-class Car {
-    constructor(world, speed, motorForce) {
-        this.world = world;
-        this.speed = speed;
-        this.steeringAngle = 0;
-        this.gas = 0;
-        this.motorForce = motorForce;
 
-        this.groundMaterial = this.createGroundMaterial();
-        this.carCollisionMaterial = this.createCarCollisionMaterial();
-        this.wheelMaterial = this.createWheelMaterial();
-
-        this.carBody = this.createCarBody();
-        this.wheels = this.createWheels();
-        this.constraints = this.createWheelConstraints();
-
-        this.wheelGroundContactMaterial = this.createGroundContactMaterial();
-    }
-
-    createGroundMaterial() {
-        const groundMaterial = new CANNON.Material('groundMaterial');
-        const groundBody = new CANNON.Body({
-            mass: 0, // statisch
-            shape: new CANNON.Plane(),
-            collisionFilterGroup: 5
-        });
-        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-        groundBody.material = groundMaterial;
-        this.world.addBody(groundBody);
-        return groundMaterial;
-    }
-
-    createCarCollisionMaterial() {
-        return new CANNON.Material('carCollisionMaterial');
-    }
-
-    createWheelMaterial() {
-        return new CANNON.Material('wheelMaterial');
-    }
-
-    createCarBody() {
-        const carBody = new CANNON.Body({
-            mass: 2000,
-            shape: new CANNON.Box(new CANNON.Vec3(3.8, 0.7, 1.5)),
-            collisionFilterGroup: 5,
-            material: this.carCollisionMaterial
-        });
-        carBody.centerOfMassOffset = new CANNON.Vec3(1, -90000, 0);
-        carBody.angularDamping = 0.1;
-        carBody.position.set(0, 3, 6);
-        this.world.addBody(carBody);
-        return carBody;
-    }
-
-    createWheel(position) {
-        const wheelShape = new CANNON.Sphere(0.45); // Radform
-        const wheel = new CANNON.Body({
-            mass: 50,
-            shape: wheelShape,
-            collisionFilterGroup: 2,
-            collisionFilterMask: ~3
-        });
-        wheel.position.copy(position);
-        wheel.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
-        wheel.material = this.wheelMaterial;
-        this.world.addBody(wheel);
-        return wheel;
-    }
-
-    createWheels() {
-        const positionFL = new CANNON.Vec3(1.5, 1, 1);
-        const positionFR = new CANNON.Vec3(-1.5, 1, 1);
-        const positionRL = new CANNON.Vec3(1.5, 1, -1);
-        const positionRR = new CANNON.Vec3(-1.5, 1, -1);
-
-        return {
-            frontLeft: this.createWheel(positionFL),
-            frontRight: this.createWheel(positionFR),
-            rearLeft: this.createWheel(positionRL),
-            rearRight: this.createWheel(positionRR)
-        };
-    }
-
-    createWheelConstraints() {
-        const constraints = {};
-
-        constraints.FL = new CANNON.HingeConstraint(this.carBody, this.wheels.frontLeft, {
-            pivotA: new CANNON.Vec3(2.15, -0.4, -1.6),
-            pivotB: new CANNON.Vec3(0, 0, 0),
-            axisA: new CANNON.Vec3(0, 0, 1),
-            axisB: new CANNON.Vec3(0, 1, 0),
-            stiffness: 0.1,
-            relaxation: 1
-        });
-        this.world.addConstraint(constraints.FL);
-
-        constraints.FR = new CANNON.HingeConstraint(this.carBody, this.wheels.frontRight, {
-            pivotA: new CANNON.Vec3(2.15, -0.4, 1.6),
-            pivotB: new CANNON.Vec3(0, 0, 0),
-            axisA: new CANNON.Vec3(0, 0, 1),
-            axisB: new CANNON.Vec3(0, 1, 0),
-            stiffness: 0.1,
-            relaxation: 1
-        });
-        this.world.addConstraint(constraints.FR);
-
-        constraints.RL = new CANNON.HingeConstraint(this.carBody, this.wheels.rearLeft, {
-            pivotA: new CANNON.Vec3(-2.6, -0.4, -1.7),
-            pivotB: new CANNON.Vec3(0, 0, 0),
-            axisA: new CANNON.Vec3(0, 0, 1),
-            axisB: new CANNON.Vec3(0, 1, 0),
-            stiffness: 0.1,
-            relaxation: 1
-        });
-        constraints.RL.enableMotor();
-        constraints.RL.setMotorMaxForce(this.motorForce);
-        this.world.addConstraint(constraints.RL);
-
-        constraints.RR = new CANNON.HingeConstraint(this.carBody, this.wheels.rearRight, {
-            pivotA: new CANNON.Vec3(-2.6, -0.4, 1.7),
-            pivotB: new CANNON.Vec3(0, 0, 0),
-            axisA: new CANNON.Vec3(0, 0, 1),
-            axisB: new CANNON.Vec3(0, 1, 0),
-            stiffness: 0.1,
-            relaxation: 1
-        });
-        constraints.RR.enableMotor();
-        constraints.RR.setMotorMaxForce(this.motorForce);
-        this.world.addConstraint(constraints.RR);
-
-        return constraints;
-    }
-
-    createGroundContactMaterial() {
-        const wheelGroundContactMaterial = new CANNON.ContactMaterial(this.wheelMaterial, this.groundMaterial, {
-            friction: 0.9,
-            restitution: 0.001
-        });
-        this.world.addContactMaterial(wheelGroundContactMaterial);
-
-        return wheelGroundContactMaterial;
-    }
-
-    createContactMaterial(material1, material2, friction, restitution) {
-        return new CANNON.ContactMaterial(material1, material2, {
-            friction,
-            restitution
-        });
-    }
-}
 
 
 
@@ -198,10 +50,8 @@ let deltaTime = 0;
 let fps = 0;
 let speedElement = document.getElementsByClassName('speed')[0];
 let keys = {w: false, s: false, a: false, d: false, shift: false};
-let gas = 0;
-let speed = 200;
-let motorForce = 40;
-let steeringAngle = 0;
+
+
 
 const switchElement1 = document.getElementById('mySwitch1');
 const switchElement2 = document.getElementById('mySwitch2');
@@ -235,7 +85,7 @@ document.body.appendChild(renderer.domElement);
 
 
 
-let car = new Car(world, 200, 40);
+
 
 //Camera 1
 const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -299,7 +149,6 @@ const ssrPassPOV = new SSRPass({
 composerPOV.addPass(ssrPassPOV);
 */
 
-startFunctions();
 
 
 
@@ -307,7 +156,7 @@ startFunctions();
 
 
 
-/*
+
 //cannon world setup
 const groundMaterial = new CANNON.Material('groundMaterial');
 // Create a ground body
@@ -315,154 +164,18 @@ const groundBody = new CANNON.Body({
     mass: 0, // Mass 0 makes it static
     shape: new CANNON.Plane(),
     collisionFilterGroup: 5, 
+    material: groundMaterial,
 });
 groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2); // Rotate it to be flat
 world.addBody(groundBody); // Add the ground body to the world
 
-groundBody.material = groundMaterial;
-
-const carCollisionMaterial = new CANNON.Material('carCollisionMaterial'); 
-// Setup des Fahrzeugs
-const carBody = new CANNON.Body({
-    mass: 2000,
-    shape: new CANNON.Box(new CANNON.Vec3(3.8, 0.7, 1.5)),
-    collisionFilterGroup: 5, // Assign bodyA to group 1
-    material: carCollisionMaterial
-});
-carBody.centerOfMassOffset = new CANNON.Vec3(1, -90000, 0);
-carBody.angularDamping = 0.1;
-carBody.position.set(0, 3, 6);
-world.addBody(carBody);
-
-// Räder hinzufügen
-const wheelRadius = 0.45;
-const wheelMass = 50;
-const wheelShape = new CANNON.Sphere(wheelRadius, wheelRadius, 0.3, 12 * 8, 10);
-
-// Define the positions for each wheel directly
-const positionFL = new CANNON.Vec3(1.5, 1, 1);  // Front Left (Vorderrad links)
-const positionFR = new CANNON.Vec3(-1.5, 1, 1); // Front Right (Vorderrad rechts)
-const positionRL = new CANNON.Vec3(1.5, 1, -1); // Rear Left (Hinterrad links)
-const positionRR = new CANNON.Vec3(-1.5, 1, -1); // Rear Right (Hinterrad rechts)
-
-// Create each wheel body and add it to the world
-const WheelFL = new CANNON.Body({
-    mass: wheelMass,
-    shape: wheelShape,
-    collisionFilterGroup: 2, // Assign bodyB to group 2
-    collisionFilterMask: ~3 // Collide with everything except group 1
-});
-WheelFL.position.copy(positionFL);
-WheelFL.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
-world.addBody(WheelFL);
-
-const WheelFR = new CANNON.Body({
-    mass: wheelMass,
-    shape: wheelShape,
-    collisionFilterGroup: 2, // Assign bodyB to group 2
-    collisionFilterMask: ~3 // Collide with everything except group 1
-});
-WheelFR.position.copy(positionFR);
-WheelFR.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
-world.addBody(WheelFR);
-
-const WheelRL = new CANNON.Body({
-    mass: wheelMass,
-    shape: wheelShape,
-    collisionFilterGroup: 2, // Assign bodyB to group 2
-    collisionFilterMask: ~3 // Collide with everything except group 1
-});
-WheelRL.position.copy(positionRL);
-WheelRL.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
-world.addBody(WheelRL);
-
-const WheelRR = new CANNON.Body({
-    mass: wheelMass,
-    shape: wheelShape,
-    collisionFilterGroup: 2, // Assign bodyB to group 2
-    collisionFilterMask: ~3 // Collide with everything except group 1
-});
-WheelRR.position.copy(positionRR);
-WheelRR.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
-world.addBody(WheelRR);
-
-const wheelMaterial = new CANNON.Material('wheelMaterial');
-
-const wheelGroundContactMaterial = new CANNON.ContactMaterial(wheelMaterial, groundMaterial, {
-    friction: 0.9,  // Adjust for more or less grip
-    restitution: 0.001  // Set to zero to avoid bouncing
-});
-
-
-
-WheelFL.material = wheelMaterial;
-WheelFR.material = wheelMaterial;
-WheelRL.material = wheelMaterial;
-WheelRR.material = wheelMaterial;
-
-world.addContactMaterial(wheelGroundContactMaterial);
-world.addContactMaterial(carBodyBoundsContactMaterial);
-
-
-
-// Constraints für die Räder hinzufügen
-let FLhingeConstraint = new CANNON.HingeConstraint(carBody, WheelFL, {
-    pivotA: new CANNON.Vec3(2.15, -0.4, -1.6),
-    pivotB: new CANNON.Vec3(0, 0, 0),
-    axisA: new CANNON.Vec3(0, 0, 1),
-    axisB: new CANNON.Vec3(0, 1, 0),
-    stiffness: 0.1,
-    relaxation: 1
-});
-
-world.addConstraint(FLhingeConstraint);
-
-let FRhingeConstraint = new CANNON.HingeConstraint(carBody, WheelFR, {
-    pivotA: new CANNON.Vec3(2.15, -0.4, 1.6),
-    pivotB: new CANNON.Vec3(0, 0, 0),
-    axisA: new CANNON.Vec3(0, 0, 1),
-    axisB: new CANNON.Vec3(0, 1, 0),
-    stiffness: 0.1,
-    relaxation: 1
-});
-
-world.addConstraint(FRhingeConstraint);
-
-const RLhingeConstraint = new CANNON.HingeConstraint(carBody, WheelRL, {
-    pivotA: new CANNON.Vec3(-2.6, -0.4, -1.7),
-    pivotB: new CANNON.Vec3(0, 0, 0),
-    axisA: new CANNON.Vec3(0, 0, 1),
-    axisB: new CANNON.Vec3(0, 1, 0),
-    stiffness: 0.1,
-    relaxation: 1
-});
-
-world.addConstraint(RLhingeConstraint);
-
-RLhingeConstraint.enableMotor();
-RLhingeConstraint.setMotorMaxForce(motorForce);
-
-const RRhingeConstraint = new CANNON.HingeConstraint(carBody, WheelRR, {
-    pivotA: new CANNON.Vec3(-2.6, -0.4, 1.7),
-    pivotB: new CANNON.Vec3(0, 0, 0),
-    axisA: new CANNON.Vec3(0, 0, 1),
-    axisB: new CANNON.Vec3(0, 1, 0),
-    stiffness: 0.1,
-    relaxation: 1
-});
-
-world.addConstraint(RRhingeConstraint);
-
-RRhingeConstraint.enableMotor();
-RRhingeConstraint.setMotorMaxForce(motorForce);
-
-
-*/
+let car = new Car(world, 200, 40, groundMaterial);
 
 world.addContactMaterial(car.createContactMaterial(car.carCollisionMaterial, boundsMaterial, 0.001, 0.9));
 
 
 
+startFunctions();
 
 
 
@@ -582,11 +295,11 @@ function steer(angle) {
 function drive(gasa) {
 
     if (gasa == 1) {
-        car.constraints.RR.setMotorSpeed(speed);
-        car.constraints.RL.setMotorSpeed(speed);
+        car.constraints.RR.setMotorSpeed(car.speed);
+        car.constraints.RL.setMotorSpeed(car.speed);
     } else if (gasa == -1) {
-        car.constraints.RR.setMotorSpeed(speed * -1);
-        car.constraints.RL.setMotorSpeed(speed * -1);
+        car.constraints.RR.setMotorSpeed(car.speed * -1);
+        car.constraints.RL.setMotorSpeed(car.speed * -1);
     } else if (gasa == 0) {
         car.constraints.RR.setMotorSpeed(0);
         car.constraints.RL.setMotorSpeed(0);
