@@ -94,7 +94,7 @@ export class Car {
         this.world.addConstraint(constraints.FR);
 
         constraints.RL = new CANNON.HingeConstraint(this.carBody, this.wheels.rearLeft, {
-            pivotA: new CANNON.Vec3(-2.6, -0.4, -1.7),
+            pivotA: new CANNON.Vec3(-2.6, -0.4, -1.6),
             pivotB: new CANNON.Vec3(0, 0, 0),
             axisA: new CANNON.Vec3(0, 0, 1),
             axisB: new CANNON.Vec3(0, 1, 0),
@@ -106,7 +106,7 @@ export class Car {
         this.world.addConstraint(constraints.RL);
 
         constraints.RR = new CANNON.HingeConstraint(this.carBody, this.wheels.rearRight, {
-            pivotA: new CANNON.Vec3(-2.6, -0.4, 1.7),
+            pivotA: new CANNON.Vec3(-2.6, -0.4, 1.6),
             pivotB: new CANNON.Vec3(0, 0, 0),
             axisA: new CANNON.Vec3(0, 0, 1),
             axisB: new CANNON.Vec3(0, 1, 0),

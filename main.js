@@ -420,10 +420,10 @@ function onWindowResize() {
     renderer.setSize(width, height);
     composer.setSize(width, height);
     composerPOV.setSize(width, height);
-    ssaoPass.setSize(width, height);
-    ssaoPassPOV.setSize(width, height);
-    ssrPass.setSize(width, height);
-    ssrPassPOV.setSize(width, height);
+    //SSAOPass.setSize(width, height);
+    //ssaoPassPOV.setSize(width, height);
+    //ssrPass.setSize(width, height);
+    //ssrPassPOV.setSize(width, height);
 }
 
 function calcSteeringSpeed(speed, maxSpeed){
