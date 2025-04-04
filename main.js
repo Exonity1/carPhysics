@@ -56,6 +56,9 @@ let keys = {w: false, s: false, a: false, d: false, shift: false};
 const switchElement1 = document.getElementById('mySwitch1');
 const switchElement2 = document.getElementById('mySwitch2');
 document.getElementById("resetbutton").addEventListener('click', reset);
+window.addEventListener('keydown', handleKeyDown);
+window.addEventListener('keyup', handleKeyUp);
+window.addEventListener('resize', onWindowResize, false);
 
 let ThreeCarBody;
 let WheelFLBody;
@@ -169,7 +172,7 @@ const groundBody = new CANNON.Body({
 groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2); // Rotate it to be flat
 world.addBody(groundBody); // Add the ground body to the world
 
-let car = new Car(world, 200, 40, groundMaterial);
+let car = new Car(world, 200, 150, groundMaterial, new CANNON.Vec3(0, 0, 10));
 
 world.addContactMaterial(car.createContactMaterial(car.carCollisionMaterial, boundsMaterial, 0.001, 0.9));
 
@@ -223,11 +226,8 @@ function animate() {
 
     updateSpeedometer(Math.abs(aSpeed), 340);
     updateFPS();
-    steer(car.steeringAngle);
-    drive(car.gas);
+    car.update();
 }
-
-
 
 
 
@@ -277,33 +277,6 @@ function replaceGroundPlane() {
             }
             wait = false;
         }, 3000);
-    }
-}
-
-function steer(angle) {
-    let ratio = calcSteeringSpeed(car.carBody.velocity.length().toFixed(1),95)
-    let actual_angle = angle / -200 * ratio
-   
-    if (actual_angle === 0) {
-        //console.log("zurückgesetzt");
-    } else {
-        car.constraints.FL.axisA.x = actual_angle;
-        car.constraints.FR.axisA.x = actual_angle;
-    }
-}
-
-function drive(gasa) {
-
-    if (gasa == 1) {
-        car.constraints.RR.setMotorSpeed(car.speed);
-        car.constraints.RL.setMotorSpeed(car.speed);
-    } else if (gasa == -1) {
-        car.constraints.RR.setMotorSpeed(car.speed * -1);
-        car.constraints.RL.setMotorSpeed(car.speed * -1);
-    } else if (gasa == 0) {
-        car.constraints.RR.setMotorSpeed(0);
-        car.constraints.RL.setMotorSpeed(0);
-
     }
 }
 
@@ -360,11 +333,6 @@ function handleKeyUp(event) {
     if (event.key === 'd') keys.d = false;
     if (event.key === ' ') keys.shift = false;
 }
-
-window.addEventListener('keydown', handleKeyDown);
-window.addEventListener('keyup', handleKeyUp);
-window.addEventListener('resize', onWindowResize, false);
-
 
 function checkKeyStates() {
     if (keys.w && !keys.s) {
@@ -424,18 +392,6 @@ function onWindowResize() {
     //ssaoPassPOV.setSize(width, height);
     //ssrPass.setSize(width, height);
     //ssrPassPOV.setSize(width, height);
-}
-
-function calcSteeringSpeed(speed, maxSpeed){
-    let steeringRatio
-    let xSpeed
-    if(speed == 0){
-        xSpeed = 0;
-    }else{
-        xSpeed = speed/maxSpeed
-    }
-    steeringRatio = Math.pow(Math.E, -5*xSpeed);
-    return steeringRatio
 }
 
 function hideLoadingScreen() {

@@ -1,3 +1,0 @@
-clean  up code // maybe use classes 
-
-implement multiplayer using websockets for important communication and udp for realtime communication reagardin position and physics sync and so on 
