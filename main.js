@@ -417,7 +417,7 @@ function loadCarBody() {
 
     gLTFloader.load(
 
-        'models/cyberCarBody.glb',
+        'models/carmodel.glb',
 
 
         function(gltf) {
